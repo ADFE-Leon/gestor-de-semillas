@@ -645,39 +645,123 @@
     }
   }
 
-  async function guardarEnNube() {
-    if (!nubeConfigurada) {
-      console.log('JSONBin no configurado');
-      return;
-    }
-    
-    mostrarSync('💾 Guardando en la nube...', 'guardando');
-    console.log('Enviando a JSONBin:', semillas);
-    
-    try {
-      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY
-        },
-        body: JSON.stringify({ semillas: semillas })
-      });
-      
-      console.log('Status guardado:', response.status);
-      
-      if (response.ok) {
-        mostrarSync('✅ Guardado en la nube', 'ok');
-      } else {
-        const errorText = await response.text();
-        console.error('Error al guardar:', response.status, errorText);
-        mostrarSync(' Error al guardar en la nube', 'error');
-      }
-    } catch (error) {
-      console.error('Error al guardar en la nube:', error);
-      mostrarSync('⚠️ Error de conexión al guardar', 'error');
-    }
+   async function cargarDesdeNube() {
+  if (!nubeConfigurada) {
+    console.log('JSONBin no configurado, usando localStorage');
+    mostrarSync('⚠️ JSONBin no configurado', 'error');
+    return false;
   }
+  
+  console.log('🔄 Iniciando carga desde JSONBin.io...');
+  mostrarSync('🔄 Conectando con la nube...', 'info');
+  
+  try {
+    // Probamos varias URLs por si una falla
+    const urls = [
+      `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+      `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`
+    ];
+    
+    let data = null;
+    let urlUsada = null;
+    
+    for (const url of urls) {
+      try {
+        console.log('Probando URL:', url);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 
+            'X-Master-Key': JSONBIN_API_KEY
+          }
+        });
+        
+        console.log('Status:', response.status);
+        
+        if (response.ok) {
+          data = await response.json();
+          urlUsada = url;
+          console.log('Respuesta completa:', JSON.stringify(data, null, 2));
+          break;
+        }
+      } catch (e) {
+        console.log('URL falló:', url, e);
+      }
+    }
+    
+    if (!data) {
+      mostrarSync('❌ No se pudo conectar con la nube', 'error');
+      return false;
+    }
+    
+    console.log('URL que funcionó:', urlUsada);
+    
+    // === PARSEO UNIVERSAL: probamos TODAS las estructuras posibles ===
+    let datosSemillas = null;
+    
+    // Estructura 1: { record: { semillas: [...] } }
+    if (data.record && data.record.semillas && Array.isArray(data.record.semillas)) {
+      datosSemillas = data.record.semillas;
+      console.log('✅ Estructura 1 detectada: record.semillas');
+    }
+    // Estructura 2: { record: [...] }
+    else if (data.record && Array.isArray(data.record)) {
+      datosSemillas = data.record;
+      console.log('✅ Estructura 2 detectada: record (array)');
+    }
+    // Estructura 3: { semillas: [...] }
+    else if (data.semilla && Array.isArray(data.semillas)) {
+      datosSemillas = data.semillas;
+      console.log('✅ Estructura 3 detectada: semillas (array)');
+    }
+    // Estructura 4: data es directamente un array [...]
+    else if (Array.isArray(data)) {
+      datosSemillas = data;
+      console.log('✅ Estructura 4 detectada: array directo');
+    }
+    // Estructura 5: { semillas: [...] } (sin record)
+    else if (data.semilla && Array.isArray(data.semilla)) {
+      datosSemillas = data.semilla;
+      console.log('✅ Estructura 5 detectada: semilla (array)');
+    }
+    // Estructura 6: buscar cualquier array dentro del objeto
+    else {
+      // Buscamos recursivamente el primer array que contenga objetos con "nombre"
+      function buscarArray(obj, profundidad = 0) {
+        if (profundidad > 3) return null;
+        if (Array.isArray(obj) && obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 'nombre' in obj[0]) {
+          return obj;
+        }
+        if (obj && typeof obj === 'object') {
+          for (const key in obj) {
+            const resultado = buscarArray(obj[key], profundidad + 1);
+            if (resultado) return resultado;
+          }
+        }
+        return null;
+      }
+      datosSemillas = buscarArray(data);
+      if (datosSemillas) console.log('✅ Estructura 6 detectada: búsqueda recursiva');
+    }
+    
+    if (datosSemillas !== null && Array.isArray(datosSemillas)) {
+      console.log(`✅ Cargadas ${datosSemillas.length} semillas desde la nube`);
+      console.log('Primera semilla:', datosSemillas[0]);
+      semillas = datosSemillas;
+      localStorage.setItem('semillas', JSON.stringify(semillas));
+      mostrarSync(`☁️ ${semillas.length} semillas cargadas desde la nube`, 'ok');
+      render();
+      return true;
+    } else {
+      console.error('❌ No se pudo encontrar el array de semillas. Estructura recibida:', JSON.stringify(data, null, 2));
+      mostrarSync('⚠️ Estructura no reconocida (ver consola F12)', 'error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error al cargar desde la nube:', error);
+    mostrarSync('⚠️ Error de conexión: ' + error.message, 'error');
+    return false;
+  }
+}
 
   function formatearFecha(fechaStr) {
     if (!fechaStr) return '-';
