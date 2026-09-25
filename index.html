@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 Gestor de Semillero</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    min-height: 100vh;
+    color: #2e3d2f;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  header {
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+      linear-gradient(135deg, #1b5e20 0%, #2e7d32 30%, #43a047 60%, #66bb6a 100%);
+    color: white;
+    padding: 28px 30px 22px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+    background-size: 30px 30px;
+    animation: drift 20s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes drift {
+    from { transform: translate(0, 0); }
+    to { transform: translate(30px, 30px); }
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #ffd54f 0%, #ffb300 20%, 
+      #ff7043 40%, #ef5350 60%, 
+      #ab47bc 80%, #5c6bc0 100%);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  .header-icono {
+    font-size: 65px;
+    display: block;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    animation: flotar 3s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+  }
+  @keyframes flotar {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  header h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    text-shadow: 0 3px 12px rgba(0,0,0,0.35);
+    position: relative;
+    z-index: 1;
+    animation: aparecer 0.8s ease-out;
+  }
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  header p {
+    font-size: 15px;
+    opacity: 0.95;
+    font-weight: 300;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+    animation: aparecer 1s ease-out;
+  }
+  .header-linea {
+    width: 70px;
+    height: 3px;
+    background: rgba(255,255,255,0.7);
+    margin: 8px auto 0;
+    border-radius: 2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tabs {
+    display: flex;
+    background: #f1f8e9;
+    border-bottom: 2px solid #c8e6c9;
+  }
+  .tab {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+    color: #2e3d2f;
+  }
+  .tab:hover { background: #dcedc8; }
+  .tab.active {
+    background: white;
+    border-bottom-color: #4caf50;
+    color: #2e7d32;
+  }
+  .tab.tab-add { color: #6a1b9a; }
+  .tab.tab-add:hover { background: #f3e5f5; }
+  .tab.tab-add.active {
+    background: white;
+    border-bottom-color: #8e24aa;
+    color: #6a1b9a;
+  }
+
+  .content { padding: 30px; }
+  .section { display: none; }
+  .section.active { display: block; animation: fade 0.3s; }
+  @keyframes fade { from {opacity:0;} to {opacity:1;} }
+
+  h2 { margin-bottom: 20px; color: #2e7d32; }
+
+  form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group.col-vacio { visibility: hidden; }
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #2e7d32;
+    font-size: 14px;
+  }
+  input, select {
+    padding: 10px 12px;
+    border: 2px solid #c8e6c9;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border 0.2s;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #4caf50;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 15px;
+    transition: transform 0.2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-cancelar {
+    background: linear-gradient(135deg, #9e9e9e, #616161);
+    padding: 12px 24px;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 15px;
+    margin-left: 10px;
+  }
+
+  .sector-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .sector-btn {
+    padding: 10px 18px;
+    border: 2px solid #c8e6c9;
+    background: white;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .sector-btn:hover { border-color: #4caf50; }
+  .sector-btn.active {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+  }
+
+  .filtro-estado {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filtro-estado span {
+    font-weight: 600;
+    color: #2e7d32;
+    margin-right: 5px;
+  }
+  .filtro-btn {
+    padding: 6px 14px;
+    border: 2px solid #c8e6c9;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .filtro-btn:hover { border-color: #4caf50; }
+  .filtro-btn.active {
+    background: #2e7d32;
+    color: white;
+    border-color: #2e7d32;
+  }
+
+  .tarjetas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+
+  .tarjeta {
+    background: white;
+    border: 2px solid #e8f5e9;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .tarjeta:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    border-color: #4caf50;
+  }
+  .tarjeta.baja {
+    opacity: 0.6;
+    background: #fafafa;
+  }
+
+  .tarjeta-nombre {
+    grid-row: 1 / 4;
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: white;
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border-right: 2px solid #e8f5e9;
+  }
+  .tarjeta.baja .tarjeta-nombre {
+    background: linear-gradient(135deg, #9e9e9e, #616161);
+  }
+  .tarjeta-nombre .icono {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+  .tarjeta-nombre .nombre-texto {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .tarjeta-nombre .sector-texto {
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  .tarjeta-campo {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f8e9;
+    display: flex;
+    flex-direction: column;
+  }
+  .tarjeta-campo .etiqueta {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #81c784;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .tarjeta-campo .valor {
+    font-size: 13px;
+    color: #2e3d2f;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .tarjeta-acciones {
+    grid-column: 1 / -1;
+    padding: 10px 14px;
+    background: #f9fbe7;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    border-top: 1px solid #e8f5e9;
+  }
+  .tarjeta.baja .tarjeta-acciones {
+    background: #f5f5f5;
+  }
+
+  .btn-accion {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    transition: transform 0.15s;
+  }
+  .btn-accion:hover { transform: translateY(-1px); }
+  .btn-editar { background: linear-gradient(135deg, #42a5f5, #1565c0); }
+  .btn-baja { background: linear-gradient(135deg, #ffa726, #ef6c00); }
+  .btn-recuperar { background: linear-gradient(135deg, #66bb6a, #2e7d32); }
+  .btn-eliminar { background: linear-gradient(135deg, #ef5350, #c62828); }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .badge-red { background: #ffcdd2; color: #b71c1c; }
+  .badge-yellow { background: #fff9c4; color: #f57f17; }
+  .badge-green { background: #c8e6c9; color: #1b5e20; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  .metric-card {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    color: white;
+  }
+  .metric-card h3 { font-size: 36px; margin-bottom: 5px; }
+  .metric-card p { font-size: 14px; opacity: 0.95; }
+  .mc-red { background: linear-gradient(135deg, #e57373, #c62828); }
+  .mc-yellow { background: linear-gradient(135deg, #ffd54f, #f57f17); }
+  .mc-green { background: linear-gradient(135deg, #81c784, #2e7d32); }
+
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: #9e9e9e;
+    font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  .aviso-edicion {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    color: #e65100;
+    font-weight: 600;
+    display: none;
+  }
+  .aviso-edicion.visible { display: block; }
+
+  @media (max-width: 600px) {
+    form { grid-template-columns: 1fr; }
+    .form-group.col-vacio { display: none; }
+    .tab { font-size: 13px; padding: 12px 5px; }
+    .tarjetas-grid { grid-template-columns: 1fr; }
+    .tarjeta { grid-template-columns: 100px 1fr; }
+    .tarjeta-nombre { padding: 15px 10px; }
+    .tarjeta-nombre .icono { font-size: 24px; }
+    .tarjeta-nombre .nombre-texto { font-size: 13px; }
+    header h1 { font-size: 26px; }
+    .header-icono { font-size: 48px; }
+    header { padding: 22px 20px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <span class="header-icono"></span>
+    <h1>Gestor de Banco de Semillas</h1>
+    <div class="header-linea"></div>
+    <p>Control e inventario de semillas</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab tab-add active" data-tab="añadir">➕ Añadir</div>
+    <div class="tab" data-tab="inventario">📦 Inventario</div>
+    <div class="tab" data-tab="caducidad">⚠️ Caducidad</div>
+  </div>
+
+  <div class="content">
+
+    <!-- AÑADIR / EDITAR -->
+    <div class="section active" id="añadir">
+      <h2 id="tituloFormulario">Registrar Nueva Semilla</h2>
+      <div class="aviso-edicion" id="avisoEdicion">
+        ✏️ Modo edición — estás modificando un registro existente.
+      </div>
+      <form id="formSemilla">
+        <div class="form-group full">
+          <label>Sector</label>
+          <select id="fSector" required>
+            <option>🌳 Árboles</option>
+            <option> Arbustos</option>
+            <option> Hortícolas</option>
+            <option>🌸 Ornamentales</option>
+            <option>🌿 Aromáticas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nombre de la variedad</label>
+          <input type="text" id="fNombre" placeholder="Ej: Tomate Corazón de Buey" required>
+        </div>
+        <div class="form-group">
+          <label>Época / periodo de recogida</label>
+          <input type="text" id="fRecogida" placeholder="Ej: últimos de septiembre" required>
+        </div>
+        <div class="form-group">
+          <label>Método de procesado</label>
+          <input type="text" id="fProcesado" placeholder="Ej: secado al sol 3 días" required>
+        </div>
+        <div class="form-group col-vacio"></div>
+        <div class="form-group">
+          <label>Época de siembra</label>
+          <input type="text" id="fSiembra" value="Pendiente" required>
+        </div>
+        <div class="form-group">
+          <label>Época de germinación</label>
+          <input type="text" id="fGerminacion" value="Pendiente" required>
+        </div>
+        <div class="form-group col-vacio"></div>
+        <div class="form-group col-vacio"></div>
+        <div class="form-group">
+          <label>Fecha de caducidad</label>
+          <input type="text" id="fCaducidad" placeholder="dd/mm/aaaa" required>
+        </div>
+        <div class="form-group full">
+          <button type="submit" class="btn" id="btnEnviar"> Guardar Semilla</button>
+          <button type="button" class="btn-cancelar" id="btnCancelar" style="display:none;">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- INVENTARIO -->
+    <div class="section" id="inventario">
+      <h2>Inventario por Sectores</h2>
+      <div class="sector-selector" id="sectorSelector"></div>
+      <div class="filtro-estado">
+        <span>Filtrar:</span>
+        <button class="filtro-btn active" data-filtro="activas">✅ Activas</button>
+        <button class="filtro-btn" data-filtro="bajas">⬇️ Dadas de baja</button>
+        <button class="filtro-btn" data-filtro="todas">📋 Todas</button>
+      </div>
+      <div class="tarjetas-grid" id="tarjetasInventario"></div>
+    </div>
+
+    <!-- CADUCIDAD -->
+    <div class="section" id="caducidad">
+      <h2>Panel de Caducidad</h2>
+      <div class="metrics">
+        <div class="metric-card mc-red">
+          <h3 id="mCaducadas">0</h3>
+          <p>🔴 Caducadas</p>
+        </div>
+        <div class="metric-card mc-yellow">
+          <h3 id="mProximas">0</h3>
+          <p>🟡 Próximas (&lt;6 meses)</p>
+        </div>
+        <div class="metric-card mc-green">
+          <h3 id="mVigentes">0</h3>
+          <p>🟢 Vigentes</p>
+        </div>
+      </div>
+      <div class="tarjetas-grid" id="tarjetasCaducidad"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SECTORES = ["🌳 Árboles", "🌿 Arbustos", " Hortícolas", "🌸 Ornamentales", "🌿 Aromáticas"];
+  let semillas = JSON.parse(localStorage.getItem('semillas') || '[]');
+  let sectorActivo = SECTORES[0];
+  let filtroEstado = 'activas';
+  let idEditando = null;
+
+  function formatearFecha(fechaStr) {
+    if (!fechaStr) return '-';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(fechaStr)) return fechaStr;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+      const [a, m, d] = fechaStr.split('-');
+      return `${d}/${m}/${a}`;
+    }
+    return fechaStr;
+  }
+
+  function parsearFecha(fechaStr) {
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(fechaStr)) {
+      const [d, m, a] = fechaStr.split('/');
+      return `${a}-${m}-${d}`;
+    }
+    return fechaStr;
+  }
+
+  function fechaFuturaDDMM(anios) {
+    const futura = new Date();
+    futura.setFullYear(futura.getFullYear() + anios);
+    const d = String(futura.getDate()).padStart(2, '0');
+    const m = String(futura.getMonth() + 1).padStart(2, '0');
+    const a = futura.getFullYear();
+    return `${d}/${m}/${a}`;
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'añadir' && idEditando === null) {
+        resetFormulario();
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll('.filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filtroEstado = btn.dataset.filtro;
+      renderInventario();
+    });
+  });
+
+  function renderSectores() {
+    const cont = document.getElementById('sectorSelector');
+    cont.innerHTML = '';
+    SECTORES.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sector-btn' + (s === sectorActivo ? ' active' : '');
+      btn.textContent = s;
+      btn.onclick = () => { 
+        sectorActivo = s; 
+        renderSectores(); // ← CORRECCIÓN: repintar botones
+        renderInventario();
+      };
+      cont.appendChild(btn);
+    });
+  }
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  const en6meses = new Date(hoy);
+  en6meses.setMonth(en6meses.getMonth() + 6);
+
+  function estadoCaducidad(fechaStr) {
+    if (!fechaStr) return null;
+    const fechaISO = parsearFecha(fechaStr);
+    const f = new Date(fechaISO);
+    if (f < hoy) return 'caducada';
+    if (f <= en6meses) return 'proxima';
+    return 'vigente';
+  }
+
+  function badgeHTML(estado) {
+    if (estado === 'caducada') return '<span class="badge badge-red">🔴 Caducada</span>';
+    if (estado === 'proxima') return '<span class="badge badge-yellow">🟡 Próxima</span>';
+    if (estado === 'vigente') return '<span class="badge badge-green">🟢 Vigente</span>';
+    return '';
+  }
+
+  function iconoSector(sector) {
+    const mapa = {
+      ' Árboles': '🌳',
+      '🌿 Arbustos': '🌿',
+      '🍅 Hortícolas': '',
+      '🌸 Ornamentales': '🌸',
+      '🌿 Aromáticas': '🌿'
+    };
+    return mapa[sector] || '🌱';
+  }
+
+  function crearTarjetaHTML(s, mostrarAcciones = true) {
+    const esBaja = s.estado === 'baja';
+    const claseBaja = esBaja ? ' baja' : '';
+    
+    let acciones = '';
+    if (mostrarAcciones) {
+      if (esBaja) {
+        acciones = `
+          <button class="btn-accion btn-recuperar" onclick="recuperar(${s.id})">♻️ Recuperar</button>
+          <button class="btn-accion btn-eliminar" onclick="eliminarDefinitivo(${s.id})">🗑️ Eliminar</button>
+        `;
+      } else {
+        acciones = `
+          <button class="btn-accion btn-editar" onclick="editar(${s.id})">️ Editar</button>
+          <button class="btn-accion btn-baja" onclick="darDeBaja(${s.id})">⬇️ Dar de baja</button>
+        `;
+      }
+    }
+
+    return `
+      <div class="tarjeta${claseBaja}">
+        <div class="tarjeta-nombre">
+          <div class="icono">${iconoSector(s.sector)}</div>
+          <div class="nombre-texto">${s.nombre}</div>
+          <div class="sector-texto">${s.sector}</div>
+        </div>
+        <div class="tarjeta-campo">
+          <span class="etiqueta">Recogida</span>
+          <span class="valor">${s.recogida}</span>
+        </div>
+        <div class="tarjeta-campo">
+          <span class="etiqueta">Procesado</span>
+          <span class="valor">${s.procesado}</span>
+        </div>
+        <div class="tarjeta-campo">
+          <span class="etiqueta">Siembra</span>
+          <span class="valor">${s.siembra}</span>
+        </div>
+        <div class="tarjeta-campo">
+          <span class="etiqueta">Germinación</span>
+          <span class="valor">${s.germinacion}</span>
+        </div>
+        <div class="tarjeta-campo">
+          <span class="etiqueta">Caducidad</span>
+          <span class="valor">${formatearFecha(s.caducidad)} ${badgeHTML(estadoCaducidad(s.caducidad))}</span>
+        </div>
+        ${mostrarAcciones ? `<div class="tarjeta-acciones">${acciones}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function renderInventario() {
+    const cont = document.getElementById('tarjetasInventario');
+    let filtradas = semillas.filter(s => s.sector === sectorActivo);
+
+    if (filtroEstado === 'activas') filtradas = filtradas.filter(s => s.estado !== 'baja');
+    else if (filtroEstado === 'bajas') filtradas = filtradas.filter(s => s.estado === 'baja');
+
+    if (filtradas.length === 0) {
+      const mensaje = filtroEstado === 'bajas' 
+        ? 'No hay semillas dadas de baja en este sector'
+        : 'No hay semillas en este sector';
+      cont.innerHTML = `<div class="empty">${mensaje}</div>`;
+      return;
+    }
+
+    cont.innerHTML = filtradas.map(s => crearTarjetaHTML(s, true)).join('');
+  }
+
+  function renderCaducidad() {
+    const activas = semillas.filter(s => s.estado !== 'baja');
+    const caducadas = activas.filter(s => estadoCaducidad(s.caducidad) === 'caducada');
+    const proximas = activas.filter(s => estadoCaducidad(s.caducidad) === 'proxima');
+    const vigentes = activas.filter(s => estadoCaducidad(s.caducidad) === 'vigente');
+
+    document.getElementById('mCaducadas').textContent = caducadas.length;
+    document.getElementById('mProximas').textContent = proximas.length;
+    document.getElementById('mVigentes').textContent = vigentes.length;
+
+    const cont = document.getElementById('tarjetasCaducidad');
+    const ordenadas = [...caducadas, ...proximas, ...vigentes];
+    if (ordenadas.length === 0) {
+      cont.innerHTML = '<div class="empty">No hay semillas activas registradas</div>';
+      return;
+    }
+    cont.innerHTML = ordenadas.map(s => crearTarjetaHTML(s, false)).join('');
+  }
+
+  function render() {
+    renderSectores();
+    renderInventario();
+    renderCaducidad();
+  }
+
+  function darDeBaja(id) {
+    const s = semillas.find(x => x.id === id);
+    if (!s) return;
+    s.estado = 'baja';
+    guardar();
+    render();
+  }
+
+  function recuperar(id) {
+    const s = semillas.find(x => x.id === id);
+    if (!s) return;
+    s.estado = 'activa';
+    delete s.fechaBaja;
+    guardar();
+    render();
+  }
+
+  function eliminarDefinitivo(id) {
+    semillas = semillas.filter(x => x.id !== id);
+    guardar();
+    render();
+  }
+
+  function editar(id) {
+    const s = semillas.find(x => x.id === id);
+    if (!s) return;
+
+    idEditando = id;
+    document.getElementById('fSector').value = s.sector;
+    document.getElementById('fNombre').value = s.nombre;
+    document.getElementById('fRecogida').value = s.recogida;
+    document.getElementById('fProcesado').value = s.procesado;
+    document.getElementById('fSiembra').value = s.siembra;
+    document.getElementById('fGerminacion').value = s.germinacion;
+    document.getElementById('fCaducidad').value = formatearFecha(s.caducidad);
+
+    document.getElementById('tituloFormulario').textContent = '✏️ Editando: ' + s.nombre;
+    document.getElementById('avisoEdicion').classList.add('visible');
+    document.getElementById('btnEnviar').textContent = '💾 Actualizar Semilla';
+    document.getElementById('btnCancelar').style.display = 'inline-block';
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+    document.querySelector('.tab[data-tab="añadir"]').classList.add('active');
+    document.getElementById('añadir').classList.add('active');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetFormulario() {
+    idEditando = null;
+    document.getElementById('fSector').value = SECTORES[0];
+    document.getElementById('fNombre').value = '';
+    document.getElementById('fRecogida').value = '';
+    document.getElementById('fProcesado').value = '';
+    document.getElementById('fSiembra').value = 'Pendiente';
+    document.getElementById('fGerminacion').value = 'Pendiente';
+    document.getElementById('fCaducidad').value = fechaFuturaDDMM(3);
+
+    document.getElementById('tituloFormulario').textContent = 'Registrar Nueva Semilla';
+    document.getElementById('avisoEdicion').classList.remove('visible');
+    document.getElementById('btnEnviar').textContent = '💾 Guardar Semilla';
+    document.getElementById('btnCancelar').style.display = 'none';
+  }
+
+  document.getElementById('btnCancelar').addEventListener('click', () => {
+    resetFormulario();
+  });
+
+  function guardar() {
+    localStorage.setItem('semillas', JSON.stringify(semillas));
+  }
+
+  document.getElementById('formSemilla').addEventListener('submit', e => {
+    e.preventDefault();
+
+    const datos = {
+      sector: document.getElementById('fSector').value,
+      nombre: document.getElementById('fNombre').value,
+      recogida: document.getElementById('fRecogida').value,
+      procesado: document.getElementById('fProcesado').value,
+      siembra: document.getElementById('fSiembra').value,
+      germinacion: document.getElementById('fGerminacion').value,
+      caducidad: document.getElementById('fCaducidad').value
+    };
+
+    if (idEditando !== null) {
+      const idx = semillas.findIndex(s => s.id === idEditando);
+      if (idx !== -1) {
+        semillas[idx] = { ...semillas[idx], ...datos };
+      }
+    } else {
+      const nueva = {
+        id: Date.now(),
+        estado: 'activa',
+        ...datos
+      };
+      semillas.push(nueva);
+    }
+
+    guardar();
+    resetFormulario();
+    document.querySelector('.tab[data-tab="inventario"]').click();
+  });
+
+  document.getElementById('fCaducidad').value = fechaFuturaDDMM(3);
+
+  render();
+</script>
+</body>
+</html>
