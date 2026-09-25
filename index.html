@@ -461,8 +461,8 @@
 
   <div class="tabs">
     <div class="tab tab-add active" data-tab="añadir">➕ Añadir</div>
-    <div class="tab" data-tab="inventario">📦 Inventario</div>
-    <div class="tab" data-tab="caducidad">⚠️ Caducidad</div>
+    <div class="tab" data-tab="inventario"> Inventario</div>
+    <div class="tab" data-tab="caducidad">️ Caducidad</div>
   </div>
 
   <div class="content">
@@ -476,11 +476,11 @@
         <div class="form-group full">
           <label>Sector</label>
           <select id="fSector" required>
-            <option> Árboles</option>
+            <option>🌳 Árboles</option>
             <option>🌿 Arbustos</option>
             <option>🍅 Hortícolas</option>
             <option>🌸 Ornamentales</option>
-            <option>🌿 Aromáticas</option>
+            <option> Aromáticas</option>
           </select>
         </div>
         <div class="form-group">
@@ -562,7 +562,7 @@
   const JSONBIN_BIN_ID = '6ab63b40ffd5d160532d5808';
   // ============================================
 
-  const SECTORES = [" Árboles", "🌿 Arbustos", "🍅 Hortícolas", "🌸 Ornamentales", "🌿 Aromáticas"];
+  const SECTORES = ["🌳 Árboles", "🌿 Arbustos", "🍅 Hortícolas", "🌸 Ornamentales", " Aromáticas"];
   let semillas = JSON.parse(localStorage.getItem('semillas') || '[]');
   let sectorActivo = SECTORES[0];
   let filtroEstado = 'activas';
@@ -585,8 +585,8 @@
       return false;
     }
     
-    console.log(' Iniciando carga desde JSONBin.io...');
-    mostrarSync('🔄 Conectando con la nube...', 'info');
+    console.log('🔄 Iniciando carga desde JSONBin.io...');
+    mostrarSync(' Conectando con la nube...', 'info');
     
     try {
       const url = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
@@ -612,16 +612,46 @@
       const data = await response.json();
       console.log('Respuesta recibida:', data);
       
+      // ✅ PARSEO CORREGIDO: probamos TODAS las estructuras posibles
       let datosSemillas = null;
       
+      // Estructura 1: { record: { semillas: [...] } }
       if (data.record && data.record.semillas && Array.isArray(data.record.semillas)) {
         datosSemillas = data.record.semillas;
-      } else if (data.record && Array.isArray(data.record)) {
+        console.log('✅ Estructura 1: record.semillas');
+      }
+      // Estructura 2: { record: [...] }
+      else if (data.record && Array.isArray(data.record)) {
         datosSemillas = data.record;
-      } else if (Array.isArray(data)) {
-        datosSemillas = data;
-      } else if (data.semilla && Array.isArray(data.semillas)) {
+        console.log('✅ Estructura 2: record (array)');
+      }
+      // Estructura 3: { semillas: [...] } ← ESTA ES LA QUE USA JSONBIN.IO
+      else if (data.semillas && Array.isArray(data.semillas)) {
         datosSemillas = data.semillas;
+        console.log('✅ Estructura 3: semillas (array directo)');
+      }
+      // Estructura 4: data es directamente un array [...]
+      else if (Array.isArray(data)) {
+        datosSemillas = data;
+        console.log('✅ Estructura 4: array directo');
+      }
+      // Estructura 5: búsqueda recursiva
+      else {
+        function buscarArray(obj, profundidad = 0) {
+          if (profundidad > 3) return null;
+          if (Array.isArray(obj) && obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 'nombre' in obj[0]) {
+            return obj;
+          }
+          if (obj && typeof obj === 'object') {
+            for (const key in obj) {
+              const resultado = buscarArray(obj[key], profundidad + 1);
+              if (resultado) return resultado;
+            }
+          }
+          return null;
+        }
+        datosSemillas = buscarArray(data);
+        if (datosSemillas) console.log('✅ Estructura 5: búsqueda recursiva');
       }
       
       if (datosSemillas !== null && Array.isArray(datosSemillas)) {
@@ -629,7 +659,7 @@
         semillas = datosSemillas;
         localStorage.setItem('semillas', JSON.stringify(semillas));
         
-        //  NUEVO: Si el sector activo no tiene semillas, cambiar al que sí tenga
+        // Auto-cambiar al sector que tenga semillas si el actual está vacío
         const semillasEnSectorActivo = semillas.filter(s => s.sector === sectorActivo);
         if (semillasEnSectorActivo.length === 0 && semillas.length > 0) {
           for (const s of semillas) {
@@ -645,8 +675,8 @@
         render();
         return true;
       } else {
-        console.error('❌ Estructura no reconocida:', JSON.stringify(data, null, 2));
-        mostrarSync('⚠️ Estructura no reconocida', 'error');
+        console.error('❌ No se pudo encontrar el array de semillas. Estructura:', JSON.stringify(data, null, 2));
+        mostrarSync('️ Estructura no reconocida (ver consola F12)', 'error');
         return false;
       }
     } catch (error) {
@@ -805,7 +835,7 @@
         `;
       } else {
         acciones = `
-          <button class="btn-accion btn-editar" onclick="editar(${s.id})">✏️ Editar</button>
+          <button class="btn-accion btn-editar" onclick="editar(${s.id})">️ Editar</button>
           <button class="btn-accion btn-baja" onclick="darDeBaja(${s.id})">⬇️ Dar de baja</button>
         `;
       }
@@ -924,7 +954,7 @@
 
     document.getElementById('tituloFormulario').textContent = '✏️ Editando: ' + s.nombre;
     document.getElementById('avisoEdicion').classList.add('visible');
-    document.getElementById('btnEnviar').textContent = '💾 Actualizar Semilla';
+    document.getElementById('btnEnviar').textContent = ' Actualizar Semilla';
     document.getElementById('btnCancelar').style.display = 'inline-block';
 
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -996,7 +1026,7 @@
 
   // Inicialización
   (async function iniciar() {
-    console.log('🌱 Iniciando Gestor de Semillas...');
+    console.log(' Iniciando Gestor de Semillas...');
     console.log('Semillas en localStorage:', semillas.length);
     console.log('Nube configurada:', nubeConfigurada);
     
