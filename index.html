@@ -461,8 +461,8 @@
 
   <div class="tabs">
     <div class="tab tab-add active" data-tab="añadir">➕ Añadir</div>
-    <div class="tab" data-tab="inventario"> Inventario</div>
-    <div class="tab" data-tab="caducidad">️ Caducidad</div>
+    <div class="tab" data-tab="inventario">📦 Inventario</div>
+    <div class="tab" data-tab="caducidad">⚠️ Caducidad</div>
   </div>
 
   <div class="content">
@@ -480,7 +480,7 @@
             <option>🌿 Arbustos</option>
             <option>🍅 Hortícolas</option>
             <option>🌸 Ornamentales</option>
-            <option> Aromáticas</option>
+            <option>🌾 Aromáticas</option>
           </select>
         </div>
         <div class="form-group">
@@ -525,7 +525,7 @@
         <span>Filtrar:</span>
         <button class="filtro-btn active" data-filtro="activas">✅ Activas</button>
         <button class="filtro-btn" data-filtro="bajas">⬇️ Dadas de baja</button>
-        <button class="filtro-btn" data-filtro="todas">📋 Todas</button>
+        <button class="filtro-btn" data-filtro="todas"> Todas</button>
       </div>
       <div class="tarjetas-grid" id="tarjetasInventario"></div>
     </div>
@@ -543,7 +543,7 @@
         </div>
         <div class="metric-card mc-green">
           <h3 id="mVigentes">0</h3>
-          <p>🟢 Vigentes</p>
+          <p> Vigentes</p>
         </div>
       </div>
       <div class="tarjetas-grid" id="tarjetasCaducidad"></div>
@@ -562,7 +562,9 @@
   const JSONBIN_BIN_ID = '6ab63b40ffd5d160532d5808';
   // ============================================
 
-  const SECTORES = ["🌳 Árboles", "🌿 Arbustos", "🍅 Hortícolas", "🌸 Ornamentales", " Aromáticas"];
+  // ✅ TODOS LOS SECTORES CON SU ICONO
+  const SECTORES = ["🌳 Árboles", " Arbustos", "🍅 Hortícolas", "🌸 Ornamentales", "🌾 Aromáticas"];
+  
   let semillas = JSON.parse(localStorage.getItem('semillas') || '[]');
   let sectorActivo = SECTORES[0];
   let filtroEstado = 'activas';
@@ -586,7 +588,7 @@
     }
     
     console.log('🔄 Iniciando carga desde JSONBin.io...');
-    mostrarSync(' Conectando con la nube...', 'info');
+    mostrarSync('🔄 Conectando con la nube...', 'info');
     
     try {
       const url = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
@@ -612,30 +614,24 @@
       const data = await response.json();
       console.log('Respuesta recibida:', data);
       
-      // ✅ PARSEO CORREGIDO: probamos TODAS las estructuras posibles
       let datosSemillas = null;
       
-      // Estructura 1: { record: { semillas: [...] } }
       if (data.record && data.record.semillas && Array.isArray(data.record.semillas)) {
         datosSemillas = data.record.semillas;
         console.log('✅ Estructura 1: record.semillas');
       }
-      // Estructura 2: { record: [...] }
       else if (data.record && Array.isArray(data.record)) {
         datosSemillas = data.record;
         console.log('✅ Estructura 2: record (array)');
       }
-      // Estructura 3: { semillas: [...] } ← ESTA ES LA QUE USA JSONBIN.IO
       else if (data.semillas && Array.isArray(data.semillas)) {
         datosSemillas = data.semillas;
         console.log('✅ Estructura 3: semillas (array directo)');
       }
-      // Estructura 4: data es directamente un array [...]
       else if (Array.isArray(data)) {
         datosSemillas = data;
         console.log('✅ Estructura 4: array directo');
       }
-      // Estructura 5: búsqueda recursiva
       else {
         function buscarArray(obj, profundidad = 0) {
           if (profundidad > 3) return null;
@@ -659,7 +655,6 @@
         semillas = datosSemillas;
         localStorage.setItem('semillas', JSON.stringify(semillas));
         
-        // Auto-cambiar al sector que tenga semillas si el actual está vacío
         const semillasEnSectorActivo = semillas.filter(s => s.sector === sectorActivo);
         if (semillasEnSectorActivo.length === 0 && semillas.length > 0) {
           for (const s of semillas) {
@@ -676,12 +671,12 @@
         return true;
       } else {
         console.error('❌ No se pudo encontrar el array de semillas. Estructura:', JSON.stringify(data, null, 2));
-        mostrarSync('️ Estructura no reconocida (ver consola F12)', 'error');
+        mostrarSync('⚠️ Estructura no reconocida (ver consola F12)', 'error');
         return false;
       }
     } catch (error) {
       console.error('Error al cargar desde la nube:', error);
-      mostrarSync('⚠️ Error de conexión: ' + error.message, 'error');
+      mostrarSync('️ Error de conexión: ' + error.message, 'error');
       return false;
     }
   }
@@ -805,19 +800,20 @@
   }
 
   function badgeHTML(estado) {
-    if (estado === 'caducada') return '<span class="badge badge-red">🔴 Caducada</span>';
+    if (estado === 'caducada') return '<span class="badge badge-red"> Caducada</span>';
     if (estado === 'proxima') return '<span class="badge badge-yellow">🟡 Próxima</span>';
-    if (estado === 'vigente') return '<span class="badge badge-green"> Vigente</span>';
+    if (estado === 'vigente') return '<span class="badge badge-green">🟢 Vigente</span>';
     return '';
   }
 
+  // ✅ MAPA DE ICONOS: TODOS CON SU ICONO CORRESPONDIENTE
   function iconoSector(sector) {
     const mapa = {
       '🌳 Árboles': '🌳',
       '🌿 Arbustos': '🌿',
       '🍅 Hortícolas': '🍅',
-      '🌸 Ornamentales': '',
-      '🌿 Aromáticas': '🌿'
+      ' Ornamentales': '🌸',
+      '🌾 Aromáticas': '🌾'
     };
     return mapa[sector] || '🌱';
   }
@@ -835,7 +831,7 @@
         `;
       } else {
         acciones = `
-          <button class="btn-accion btn-editar" onclick="editar(${s.id})">️ Editar</button>
+          <button class="btn-accion btn-editar" onclick="editar(${s.id})">✏️ Editar</button>
           <button class="btn-accion btn-baja" onclick="darDeBaja(${s.id})">⬇️ Dar de baja</button>
         `;
       }
@@ -954,7 +950,7 @@
 
     document.getElementById('tituloFormulario').textContent = '✏️ Editando: ' + s.nombre;
     document.getElementById('avisoEdicion').classList.add('visible');
-    document.getElementById('btnEnviar').textContent = ' Actualizar Semilla';
+    document.getElementById('btnEnviar').textContent = '💾 Actualizar Semilla';
     document.getElementById('btnCancelar').style.display = 'inline-block';
 
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1024,9 +1020,8 @@
 
   document.getElementById('fCaducidad').value = fechaFuturaDDMM(3);
 
-  // Inicialización
   (async function iniciar() {
-    console.log(' Iniciando Gestor de Semillas...');
+    console.log('🌱 Iniciando Gestor de Semillas...');
     console.log('Semillas en localStorage:', semillas.length);
     console.log('Nube configurada:', nubeConfigurada);
     
